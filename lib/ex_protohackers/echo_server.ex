@@ -43,7 +43,7 @@ defmodule ExProtohackers.EchoServer do
   end
 
   defp handle_connection(socket) do
-    case read_until_closed(socket, _buffer = "") do
+    case read_until_closed(socket, _buffer = "", _byte_size = 0) do
       {:ok, data} -> :gen_tcp.send(socket, data)
       {:error, reason} -> Logger.error("Failed to receive data: #{inspect(reason)}")
     end
@@ -51,11 +51,20 @@ defmodule ExProtohackers.EchoServer do
     :gen_tcp.close(socket)
   end
 
-  defp read_until_closed(socket, buffer) do
+  @buffer_limit _100_Kb = 1024 * 100
+  defp read_until_closed(socket, buffer, buffer_size) do
     case :gen_tcp.recv(socket, 0, 10_000) do
-      {:ok, data} -> read_until_closed(socket, [buffer, data])
-      {:error, :closed} -> {:ok, buffer}
-      {:error, reason} -> {:error, reason}
+      {:ok, data} when buffer_size + byte_size(data) > @buffer_limit ->
+        {:error, :buffer_overflow}
+
+      {:ok, data} ->
+        read_until_closed(socket, [buffer, data], buffer_size + byte_size(data))
+
+      {:error, :closed} ->
+        {:ok, buffer}
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 end
