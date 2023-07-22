@@ -3,6 +3,11 @@ defmodule ExProtohackers.EchoServer do
 
   require Logger
 
+  @buffer_limit _100_Kb = 1024 * 100
+  @echo_server_port 5001
+  @read_all_data 0
+  @timeout 10_000
+
   defstruct [:listen_socket, :supervisor]
 
   def start_link(_opts) do
@@ -20,9 +25,9 @@ defmodule ExProtohackers.EchoServer do
       exit_on_close: false
     ]
 
-    case :gen_tcp.listen(5001, listen_options) do
+    case :gen_tcp.listen(@echo_server_port, listen_options) do
       {:ok, listen_socket} ->
-        Logger.info("Starting EchoServer on port: 5001")
+        Logger.info("Starting EchoServer on port: #{@echo_server_port}")
         state = %__MODULE__{listen_socket: listen_socket, supervisor: supervisor}
 
         {:ok, state, {:continue, :accept}}
@@ -53,9 +58,8 @@ defmodule ExProtohackers.EchoServer do
     :gen_tcp.close(socket)
   end
 
-  @buffer_limit _100_Kb = 1024 * 100
   defp read_until_closed(socket, buffer, buffer_size) do
-    case :gen_tcp.recv(socket, 0, 10_000) do
+    case :gen_tcp.recv(socket, @read_all_data, @timeout) do
       {:ok, data} when buffer_size + byte_size(data) > @buffer_limit ->
         {:error, :buffer_overflow}
 
