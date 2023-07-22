@@ -8,7 +8,8 @@ defmodule ExProtohackers.Application do
   @impl true
   def start(_type, _args) do
     children = [
-      ExProtohackers.EchoServer
+      ExProtohackers.EchoServer,
+      ExProtohackers.PrimeTimeServer
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
