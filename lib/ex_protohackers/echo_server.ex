@@ -3,7 +3,7 @@ defmodule ExProtohackers.EchoServer do
 
   require Logger
 
-  defstruct [:listen_socket]
+  defstruct [:listen_socket, :supervisor]
 
   def start_link(_opts) do
     GenServer.start_link(__MODULE__, :no_state)
@@ -11,6 +11,8 @@ defmodule ExProtohackers.EchoServer do
 
   @impl true
   def init(:no_state) do
+    {:ok, supervisor} = Task.Supervisor.start_link(max_children: 5)
+
     listen_options = [
       mode: :binary,
       active: false,
@@ -21,7 +23,7 @@ defmodule ExProtohackers.EchoServer do
     case :gen_tcp.listen(5001, listen_options) do
       {:ok, listen_socket} ->
         Logger.info("Starting EchoServer on port: 5001")
-        state = %__MODULE__{listen_socket: listen_socket}
+        state = %__MODULE__{listen_socket: listen_socket, supervisor: supervisor}
 
         {:ok, state, {:continue, :accept}}
 
@@ -34,7 +36,7 @@ defmodule ExProtohackers.EchoServer do
   def handle_continue(:accept, state) do
     case :gen_tcp.accept(state.listen_socket) do
       {:ok, socket} ->
-        handle_connection(socket)
+        Task.Supervisor.start_child(state.supervisor, fn -> handle_connection(socket) end)
         {:noreply, state, {:continue, :accept}}
 
       {:error, reason} ->
