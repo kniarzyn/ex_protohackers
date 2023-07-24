@@ -3,6 +3,7 @@ defmodule ExProtohackers.PrimeTimeServer do
 
   require Logger
 
+  @buffer_size 100 * 1024
   @prime_time_port 5002
 
   defstruct [:listen_socket, :supervisor]
@@ -17,6 +18,7 @@ defmodule ExProtohackers.PrimeTimeServer do
 
     listen_socket_options = [
       active: false,
+      buffer: @buffer_size,
       exit_on_close: false,
       mode: :binary,
       packet: :line,
@@ -36,6 +38,68 @@ defmodule ExProtohackers.PrimeTimeServer do
 
   @impl true
   def handle_continue(:accept, %__MODULE__{} = state) do
-    {:noreply, state, {:continue, :accept}}
+    case :gen_tcp.accept(state.listen_socket) do
+      {:ok, socket} ->
+        Task.Supervisor.start_child(state.supervisor, fn -> handle_connection(socket) end)
+        {:noreply, state, {:continue, :accept}}
+
+      {:error, reason} ->
+        {:stop, reason}
+    end
+  end
+
+  ## Helpers
+  defp handle_connection(socket) do
+    case readlines(socket) do
+      {:ok, :closed} ->
+        :ok
+
+      {:error, reason} ->
+        Logger.debug("Error during reading: #{inspect(reason)}")
+    end
+  end
+
+  defp readlines(socket) do
+    case :gen_tcp.recv(socket, 0) do
+      {:ok, data} ->
+        data
+        |> prepare_response()
+        |> send_response(socket)
+
+        readlines(socket)
+
+      {:error, :closed} ->
+        {:ok, :closed}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp prepare_response(data) do
+    data
+    |> Jason.decode()
+    |> case do
+      {:ok, %{"method" => "isPrime", "number" => number} = _request} ->
+        %{method: "isPrime", prime: is_prime?(number)}
+
+      other ->
+        Logger.debug("Malformed request: #{inspect(other)}")
+        "malformed request"
+    end
+    |> Jason.encode!()
+    |> Kernel.<>("\n")
+  end
+
+  defp send_response(response, socket) do
+    :gen_tcp.send(socket, response)
+  end
+
+  defp is_prime?(number) when is_float(number), do: false
+  defp is_prime?(number) when number <= 1, do: false
+  defp is_prime?(number) when number in [2, 3], do: true
+
+  defp is_prime?(number) do
+    not Enum.any?(2..trunc(:math.sqrt(number)), fn divider -> rem(number, divider) == 0 end)
   end
 end
