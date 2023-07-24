@@ -4,7 +4,7 @@ defmodule ExProtohackers.PrimeTimeServer do
   require Logger
 
   @buffer_size 100 * 1024
-  @prime_time_port 5002
+  @server_port 5002
 
   defstruct [:listen_socket, :supervisor]
 
@@ -25,9 +25,9 @@ defmodule ExProtohackers.PrimeTimeServer do
       reuseaddr: true
     ]
 
-    case :gen_tcp.listen(@prime_time_port, listen_socket_options) do
+    case :gen_tcp.listen(@server_port, listen_socket_options) do
       {:ok, listen_socket} ->
-        Logger.info("Starting Prime Time Server on port #{@prime_time_port}")
+        Logger.info("Starting Prime Time Server on port #{@server_port}")
         state = %__MODULE__{listen_socket: listen_socket, supervisor: supervisor}
         {:ok, state, {:continue, :accept}}
 
@@ -50,23 +50,25 @@ defmodule ExProtohackers.PrimeTimeServer do
 
   ## Helpers
   defp handle_connection(socket) do
-    case readlines(socket) do
+    case readline(socket) do
       {:ok, :closed} ->
         :ok
 
       {:error, reason} ->
         Logger.debug("Error during reading: #{inspect(reason)}")
     end
+
+    :gen_tcp.close(socket)
   end
 
-  defp readlines(socket) do
+  defp readline(socket) do
     case :gen_tcp.recv(socket, 0) do
       {:ok, data} ->
         data
         |> prepare_response()
         |> send_response(socket)
 
-        readlines(socket)
+        readline(socket)
 
       {:error, :closed} ->
         {:ok, :closed}
