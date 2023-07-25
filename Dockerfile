@@ -23,7 +23,6 @@ RUN mix do deps.get --only $MIX_ENV, deps.compile
 COPY lib lib
 RUN mix compile
 
-COPY rel rel
 RUN mix release
 
 ## Runner image
