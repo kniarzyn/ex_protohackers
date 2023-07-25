@@ -82,7 +82,7 @@ defmodule ExProtohackers.PrimeTimeServer do
     data
     |> Jason.decode()
     |> case do
-      {:ok, %{"method" => "isPrime", "number" => number} = _request} ->
+      {:ok, %{"method" => "isPrime", "number" => number} = _request} when is_number(number) ->
         %{method: "isPrime", prime: is_prime?(number)}
 
       other ->
@@ -90,7 +90,6 @@ defmodule ExProtohackers.PrimeTimeServer do
         "malformed request"
     end
     |> Jason.encode!()
-    |> Kernel.<>("\n")
   end
 
   defp send_response(response, socket) do
