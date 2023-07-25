@@ -90,6 +90,7 @@ defmodule ExProtohackers.PrimeTimeServer do
         "malformed request"
     end
     |> Jason.encode!()
+    |> then(fn enceded_response -> [enceded_response, "\n"] end)
   end
 
   defp send_response(response, socket) do
