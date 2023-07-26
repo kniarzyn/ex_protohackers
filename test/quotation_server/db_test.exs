@@ -1,5 +1,5 @@
 defmodule ExProtohackers.QuotationServer.DBTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   alias ExProtohackers.QuotationServer.DB
 
@@ -10,7 +10,7 @@ defmodule ExProtohackers.QuotationServer.DBTest do
       |> DB.insert(2, 200)
       |> DB.insert(3, 300)
 
-    assert db = [{1, 100}, {2, 200}, {3, 300}]
+    assert db == [{3, 300}, {2, 200}, {1, 100}]
 
     assert DB.query(db, 1, 3) == 200
     assert DB.query(db, 1, 1) == 100

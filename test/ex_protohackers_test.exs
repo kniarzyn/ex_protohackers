@@ -1,5 +1,5 @@
 defmodule ExProtohackersTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
   doctest ExProtohackers
 
   test "greets the world" do
