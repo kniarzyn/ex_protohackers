@@ -11,7 +11,7 @@ defmodule ExProtohackers.QuotationServer.DB do
     |> Enum.map(fn {_, price} -> price end)
     |> case do
       [] -> 0
-      prices -> Enum.sum(prices) / Enum.count(prices)
+      prices -> div(Enum.sum(prices), Enum.count(prices))
     end
   end
 end

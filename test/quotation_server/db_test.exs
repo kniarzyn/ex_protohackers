@@ -1,7 +1,6 @@
 defmodule ExProtohackers.QuotationServer.DBTest do
   use ExUnit.Case
 
-  alias ExProtohackers.QuotationServer.Db
   alias ExProtohackers.QuotationServer.DB
 
   test "DB handles inserts and queries" do
