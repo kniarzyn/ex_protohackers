@@ -1,5 +1,5 @@
 defmodule PrimeTimeServerTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test "response to valid request when number is not prime number" do
     {:ok, socket} = :gen_tcp.connect(~c"localhost", 5002, mode: :binary, active: false)
