@@ -64,8 +64,8 @@ defmodule ExProtohackers.BudgetChatServer do
 
     with {:ok, username} <- :gen_tcp.recv(socket, 0, 180_000),
          {:ok, username} <- validate_username(username),
-         {users, sockets} <- :ets.tab2list(ets) |> Enum.unzip(),
-         true <- :ets.insert(ets, {username, socket}) do
+         {sockets, users} <- :ets.tab2list(ets) |> Enum.unzip(),
+         true <- :ets.insert(ets, {socket, username}) do
       :gen_tcp.send(socket, "* The room contains: #{Enum.join(users, ", ")}\n")
 
       for user_socket <- sockets do
@@ -84,6 +84,27 @@ defmodule ExProtohackers.BudgetChatServer do
   end
 
   defp handle_chat_session(socket, ets, username) do
+    all_sockets = :ets.match(ets, {:"$1", :_})
+
+    case :gen_tcp.recv(socket, 0, 300_000) do
+      {:ok, message} ->
+        trimmed_message = String.trim(message)
+
+        if trimmed_message != "" do
+          for [other_socket] <- all_sockets, other_socket != socket do
+            :gen_tcp.send(other_socket, "[#{username}] #{message}\n")
+          end
+        end
+
+        handle_chat_session(socket, ets, username)
+
+      {:error, _resaon} ->
+        for [other_socket] <- all_sockets, other_socket != socket do
+          :gen_tcp.send(other_socket, "* #{username} left the channel!")
+          _ = :gen_tcp.close(socket)
+          :ets.delete(ets, socket)
+        end
+    end
   end
 
   defp validate_username(username) do

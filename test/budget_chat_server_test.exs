@@ -25,6 +25,6 @@ defmodule ExProtohackers.BudgetChatServerTest do
              :gen_tcp.recv(socket3, 0, 1_000)
 
     :ok = :gen_tcp.send(socket3, "Benedict\n")
-    assert {:ok, "* The room contains: Tom, John\n"} = :gen_tcp.recv(socket3, 0, 1_000)
+    assert {:ok, "* The room contains: John, Tom\n"} = :gen_tcp.recv(socket3, 0, 1_000)
   end
 end
